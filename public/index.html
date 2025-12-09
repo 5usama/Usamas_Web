@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot Panel - Deploy & Manage Bots</title>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Our CSS File -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+    
+    <style>
+        /* Additional inline styles if needed */
+        .hidden {
+            display: none !important;
+        }
+        
+        .visible {
+            display: block !important;
+        }
+        
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--gray);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loader"></div>
+    </div>
+    
+    <div class="app-container">
+        <!-- ===== SIDEBAR ===== -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>BotPanel</h1>
+                        <p>WhatsApp Bot Manager</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-links">
+                <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard')">
+                    <span class="nav-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </span>
+                    <span class="nav-text">Dashboard</span>
+                    <span class="nav-badge" id="dashboard-badge">5</span>
+                </a>
+                
+                <a href="#bots" class="nav-item" onclick="showSection('bots')">
+                    <span class="nav-icon">
+                        <i class="fas fa-robot"></i>
+                    </span>
+                    <span class="nav-text">My Bots</span>
+                    <span class="nav-badge" id="bots-badge">0</span>
+                </a>
+                
+                <a href="#deploy" class="nav-item" onclick="showSection('deploy')">
+                    <span class="nav-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </span>
+                    <span class="nav-text">Deploy Bot</span>
+                    <span class="nav-badge new">NEW</span>
+                </a>
+                
+                <a href="#console" class="nav-item" onclick="showSection('console')">
+                    <span class="nav-icon">
+                        <i class="fas fa-terminal"></i>
+                    </span>
+                    <span class="nav-text">Console</span>
+                </a>
+                
+                <a href="#settings" class="nav-item" onclick="showSection('settings')">
+                    <span class="nav-icon">
+                        <i class="fas fa-cog"></i>
+                    </span>
+                    <span class="nav-text">Settings</span>
+                </a>
+                
+                <div style="flex: 1;"></div>
+                
+                <a href="#help" class="nav-item" onclick="showSection('help')">
+                    <span class="nav-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                    <span class="nav-text">Help & Docs</span>
+                </a>
+                
+                <a href="#logout" class="nav-item" onclick="logout()">
+                    <span class="nav-icon">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </span>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </nav>
+        
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="section">
+                <div class="header">
+                    <div class="header-title">
+                        <h1>Dashboard Overview</h1>
+                        <p>Monitor and manage all your WhatsApp bots from one place</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showDeployModal()">
+                            <i class="fas fa-plus"></i> Deploy New Bot
+                        </button>
+                        <div class="user-profile">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-info">
+                                <h4 id="username">Admin</h4>
+                                <p>Online</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-bots-count">0</h3>
+                            <p>Total Bots</p>
+                            <div class="stat-trend trend-up">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+2 this week</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="running-bots-count">0</h3>
+                            <p>Running Bots</p>
+                            <div class="stat-trend trend-up">
+                                <i class="fas fa-check-circle"></i>
+                                <span>All systems normal</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="server-status">1</h3>
+                            <p>Active Servers</p>
+                            <div class="stat-trend trend-up">
+                                <i class="fas fa-bolt"></i>
+                                <span>100% Uptime</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-requests">0</h3>
+                            <p>Total Requests</p>
+                            <div class="stat-trend trend-up">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+24% today</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Bots -->
+                <div class="section-title">
+                    <i class="fas fa-clock"></i>
+                    <span>Recently Deployed Bots</span>
+                </div>
+                
+                <div id="recent-bots-container" class="bots-grid">
+                    <!-- Bots will be loaded here dynamically -->
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3>No Bots Deployed Yet</h3>
+                        <p>Deploy your first WhatsApp bot to get started</p>
+                        <button class="btn btn-primary mt-2" onclick="showDeployModal()">
+                            <i class="fas fa-cloud-upload-alt"></i> Deploy First Bot
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="section-title mt-3">
+                    <i class="fas fa-bolt"></i>
+                    <span>Quick Actions</span>
+                </div>
+                
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-secondary" onclick="loadBots()">
+                        <i class="fas fa-sync-alt"></i> Refresh Bots
+                    </button>
+                    <button class="btn btn-secondary" onclick="showConsole()">
+                        <i class="fas fa-terminal"></i> Open Console
+                    </button>
+                    <button class="btn btn-secondary" onclick="backupBots()">
+                        <i class="fas fa-download"></i> Backup All Bots
+                    </button>
+                    <button class="btn btn-secondary" onclick="restartAllBots()">
+                        <i class="fas fa-redo"></i> Restart All Bots
+                    </button>
+                </div>
+            </section>
+            
+            <!-- My Bots Section -->
+            <section id="bots-section" class="section hidden">
+                <div class="header">
+                    <div class="header-title">
+                        <h1>My WhatsApp Bots</h1>
+                        <p>Manage all your deployed bots</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showDeployModal()">
+                            <i class="fas fa-plus"></i> New Bot
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadBots()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Search and Filter -->
+                <div class="d-flex gap-2 mb-3" style="background: var(--dark-card); padding: 15px; border-radius: 12px;">
+                    <div style="flex: 1;">
+                        <input type="text" class="form-control" id="search-bots" placeholder="Search bots by name..." onkeyup="filterBots()">
+                    </div>
+                    <select class="form-control" style="width: 200px;" id="filter-status" onchange="filterBots()">
+                        <option value="">All Status</option>
+                        <option value="running">Running</option>
+                        <option value="stopped">Stopped</option>
+                        <option value="error">Error</option>
+                    </select>
+                </div>
+                
+                <!-- Bots Grid -->
+                <div id="all-bots-container" class="bots-grid">
+                    <!-- Bots will be loaded here dynamically -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="empty-bots-state" class="empty-state hidden">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>No Bots Found</h3>
+                    <p>Deploy your first WhatsApp bot to get started</p>
+                    <button class="btn btn-primary mt-2" onclick="showDeployModal()">
+                        <i class="fas fa-cloud-upload-alt"></i> Deploy First Bot
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Deploy Section -->
+            <section id="deploy-section" class="section hidden">
+                <div class="header">
+                    <div class="header-title">
+                        <h1>Deploy New Bot</h1>
+                        <p>Upload your WhatsApp bot files and configure settings</p>
+                    </div>
+                </div>
+                
+                <div style="max-width: 700px; margin: 0 auto;">
+                    <!-- Deployment Steps -->
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 40px; position: relative;">
+                        <div style="position: absolute; top: 20px; left: 50px; right: 50px; height: 2px; background: var(--border); z-index: 1;"></div>
+                        
+                        <div class="step" style="text-align: center; position: relative; z-index: 2;">
+                            <div style="width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold;">1</div>
+                            <span style="font-size: 14px; color: var(--light);">Upload Files</span>
+                        </div>
+                        
+                        <div class="step" style="text-align: center; position: relative; z-index: 2;">
+                            <div style="width: 40px; height: 40px; background: var(--gray); color: var(--light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold;">2</div>
+                            <span style="font-size: 14px; color: var(--gray-lighter);">Configure</span>
+                        </div>
+                        
+                        <div class="step" style="text-align: center; position: relative; z-index: 2;">
+                            <div style="width: 40px; height: 40px; background: var(--gray); color: var(--light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold;">3</div>
+                            <span style="font-size: 14px; color: var(--gray-lighter);">Deploy</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Form -->
+                    <div id="deploy-step-1">
+                        <div class="form-group">
+                            <label class="form-label">Bot Name *</label>
+                            <input type="text" class="form-control" id="deploy-bot-name" placeholder="my-whatsapp-bot" required>
+                            <small style="color: var(--gray-lighter); display: block; margin-top: 5px;">Use lowercase letters, numbers, and hyphens only</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Startup Command *</label>
+                            <input type="text" class="form-control" id="deploy-startup-cmd" value="node index.js" placeholder="e.g., node index.js, npm start, python bot.py">
+                            <small style="color: var(--gray-lighter); display: block; margin-top: 5px;">Command to start your bot</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Upload Bot Files (ZIP) *</label>
+                            <div style="border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer;" 
+                                 onclick="document.getElementById('deploy-bot-file').click()"
+                                 ondrop="handleDrop(event)" 
+                                 ondragover="handleDragOver(event)"
+                                 id="file-drop-area">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--primary); margin-bottom: 20px;"></i>
+                                <h3 style="margin-bottom: 10px;">Drop your bot files here</h3>
+                                <p style="color: var(--gray-lighter); margin-bottom: 20px;">or click to select ZIP file</p>
+                                <input type="file" id="deploy-bot-file" accept=".zip" style="display: none;" onchange="handleFileSelect(this)">
+                                <div class="btn btn-secondary">
+                                    <i class="fas fa-folder-open"></i> Browse Files
+                                </div>
+                            </div>
+                            <div id="file-info" style="margin-top: 15px; display: none;">
+                                <div style="background: var(--dark-card); padding: 15px; border-radius: 10px;">
+                                    <div class="d-flex align-center justify-between">
+                                        <div>
+                                            <i class="fas fa-file-archive"></i>
+                                            <span id="file-name" style="margin-left: 10px;"></span>
+                                            <span id="file-size" style="margin-left: 10px; color: var(--gray-lighter);"></span>
+                                        </div>
+                                        <button class="btn btn-sm btn-danger" onclick="clearFile()">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" style="flex: 1;" onclick="nextDeployStep()">
+                                Next Step <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Configuration Step (Hidden initially) -->
+                    <div id="deploy-step-2" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Environment Variables</label>
+                            <div id="env-vars-container">
+                                <!-- Environment variables will be added here -->
+                            </div>
+                            <button class="btn btn-secondary mt-2" onclick="addEnvVar()">
+                                <i class="fas fa-plus"></i> Add Variable
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="auto-restart" checked>
+                                Auto-restart on crash
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="start-after-deploy" checked>
+                                Start bot immediately after deployment
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-secondary" onclick="prevDeployStep()">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button class="btn btn-primary" style="flex: 1;" onclick="deployBot()">
+                                <i class="fas fa-rocket"></i> Deploy Bot
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Deployment Progress (Hidden initially) -->
+                    <div id="deploy-progress" style="display: none; text-align: center;">
+                        <div class="loader" style="margin: 30px auto;"></div>
+                        <h3 style="margin: 20px 0 10px;">Deploying Your Bot...</h3>
+                        <p style="color: var(--gray-lighter); margin-bottom: 30px;">This may take a few moments</p>
+                        
+                        <div style="background: var(--dark-card); padding: 20px; border-radius: 12px; text-align: left;">
+                            <div class="d-flex align-center justify-between mb-2">
+                                <span>Uploading files...</span>
+                                <span class="badge badge-success">Done</span>
+                            </div>
+                            <div class="d-flex align-center justify-between mb-2">
+                                <span>Extracting archive...</span>
+                                <span class="badge badge-success">Done</span>
+                            </div>
+                            <div class="d-flex align-center justify-between mb-2">
+                                <span>Installing dependencies...</span>
+                                <span id="step-deps" class="badge badge-warning">Pending</span>
+                            </div>
+                            <div class="d-flex align-center justify-between">
+                                <span>Starting bot...</span>
+                                <span id="step-start" class="badge badge-warning">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Console Section -->
+            <section id="console-section" class="section hidden">
+                <div class="header">
+                    <div class="header-title">
+                        <h1>Bot Console</h1>
+                        <p>Real-time logs and terminal access</p>
+                    </div>
+                    <div class="header-actions">
+                        <select class="form-control" style="width: 250px;" id="console-bot-select" onchange="loadBotLogs()">
+                            <option value="">Select a bot...</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="clearConsole()">
+                            <i class="fas fa-broom"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="console-container">
+                    <div class="console-header">
+                        <div class="console-title">
+                            <i class="fas fa-terminal"></i>
+                            <span id="console-bot-name">No bot selected</span>
+                        </div>
+                        <div class="console-actions">
+                            <button class="btn btn-sm btn-success" onclick="startSelectedBot()" id="console-start-btn" disabled>
+                                <i class="fas fa-play"></i> Start
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="stopSelectedBot()" id="console-stop-btn" disabled>
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="refreshConsole()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="console-window" id="console-output">
+                        <div class="log-entry">
+                            <span class="log-time">[12:00:00]</span>
+                            <span class="log-info">INFO:</span> Welcome to Bot Console
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">[12:00:00]</span>
+                            <span class="log-info">INFO:</span> Select a bot from dropdown to view logs
+                        </div>
+                    </div>
+                    
+                    <div style="background: #111; padding: 15px; border-top: 1px solid #333;">
+                        <div class="d-flex gap-2">
+                            <input type="text" class="form-control" id="console-input" placeholder="Enter command..." style="flex: 1;" onkeypress="handleConsoleCommand(event)">
+                            <button class="btn btn-primary" onclick="sendConsoleCommand()">
+                                <i class="fas fa-paper-plane"></i> Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Settings Section -->
+            <section id="settings-section" class="section hidden">
+                <div class="header">
+                    <div class="header-title">
+                        <h1>Panel Settings</h1>
+                        <p>Configure your bot panel preferences</p>
+                    </div>
+                </div>
+                
+                <div style="max-width: 700px;">
+                    <div class="stat-card mb-3">
+                        <h3 style="margin-bottom: 20px;">General Settings</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Panel Title</label>
+                            <input type="text" class="form-control" id="panel-title" value="WhatsApp Bot Panel">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Default Startup Command</label>
+                            <input type="text" class="form-control" id="default-startup-cmd" value="node index.js">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Maximum Upload Size (MB)</label>
+                            <input type="number" class="form-control" id="max-upload-size" value="50" min="1" max="100">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                    
+                    <div class="stat-card mb-3">
+                        <h3 style="margin-bottom: 20px;">Security</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="enable-auth" checked>
+                                Enable Authentication
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Change Password</label>
+                            <input type="password" class="form-control" id="new-password" placeholder="New password">
+                            <input type="password" class="form-control mt-2" id="confirm-password" placeholder="Confirm password">
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3 style="margin-bottom: 20px;">Danger Zone</h3>
+                        
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            These actions cannot be undone
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-danger" onclick="deleteAllBots()">
+                                <i class="fas fa-trash"></i> Delete All Bots
+                            </button>
+                            <button class="btn btn-warning" onclick="restartPanel()">
+                                <i class="fas fa-redo"></i> Restart Panel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Help Section -->
+            <section id="help-section" class="section hidden">
+                <div class="header">
+                    <div class="header-title">
+                        <h1>Help & Documentation</h1>
+                        <p>Learn how to use the WhatsApp Bot Panel</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3 style="margin-bottom: 20px;">Quick Start Guide</h3>
+                    
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="margin-bottom: 10px; color: var(--primary);">1. Deploy Your First Bot</h4>
+                        <p style="color: var(--gray-lighter); margin-bottom: 15px;">
+                            Go to "Deploy Bot" section and upload your WhatsApp bot files in ZIP format.
+                            Make sure your bot has an <code>index.js</code> file or specify the startup command.
+                        </p>
+                        
+                        <h4 style="margin-bottom: 10px; color: var(--primary);">2. Start/Stop Bots</h4>
+                        <p style="color: var(--gray-lighter); margin-bottom: 15px;">
+                            Use the buttons on each bot card to start, stop, or restart your bots.
+                            Monitor their status in real-time.
+                        </p>
+                        
+                        <h4 style="margin-bottom: 10px; color: var(--primary);">3. View Logs</h4>
+                        <p style="color: var(--gray-lighter); margin-bottom: 15px;">
+                            Select any bot from the Console section to view real-time logs
+                            and send commands to your bot.
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Need more help? Contact support or check the documentation.
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <!-- Deploy Modal (for dashboard quick deploy) -->
+    <div class="modal" id="deploy-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-rocket"></i>
+                    Deploy New Bot
+                </h2>
+                <button class="modal-close" onclick="closeDeployModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Bot Name</label>
+                <input type="text" class="form-control" id="modal-bot-name" placeholder="Enter bot name">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Upload ZIP File</label>
+                <input type="file" class="form-control" id="modal-bot-file" accept=".zip">
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeployModal()">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="quickDeploy()">
+                    <i class="fas fa-cloud-upload-alt"></i> Deploy
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript File -->
+    <script src="script.js"></script>
+    
+    <script>
+        // Initial loading
+        window.addEventListener('load', function() {
+            // Hide loading overlay
+            setTimeout(() => {
+                document.getElementById('loading-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }, 300);
+            }, 1000);
+            
+            // Load initial data
+            loadBots();
+        });
+        
+        // Quick navigation functions
+        function showConsole() {
+            showSection('console');
+        }
+        
+        function showDeployModal() {
+            document.getElementById('deploy-modal').classList.add('active');
+        }
+        
+        function closeDeployModal() {
+            document.getElementById('deploy-modal').classList.remove('active');
+        }
+        
+        // Simple logout
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
